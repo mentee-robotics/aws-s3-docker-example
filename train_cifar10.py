@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 import boto3
 
 s3 = boto3.resource('s3')
-bucket_name = 'aws_s3_docker_example'
+bucket_name = 'aws-s3-docker-example'
 filename = 'cifar10_model.pt'
 
 # Check if a GPU is available
@@ -18,10 +18,10 @@ transform = transforms.Compose([transforms.ToTensor(),
                                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=4, shuffle=True, num_workers=2)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True, num_workers=4)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=4, shuffle=False, num_workers=2)
+testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=4)
 
 # Define a Convolutional Neural Network (CNN)
 class Net(nn.Module):
@@ -64,9 +64,9 @@ for epoch in range(2):  # loop over the dataset multiple times
         optimizer.step()
 
         running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 2000))
+        if i % 200 == 199 or i == len(trainloader):    # print every 200 mini-batches
+            print('[%d, %5d/%5d] loss: %.3f' %
+                  (epoch + 1, i + 1, len(trainloader), running_loss / 200))
             running_loss = 0.0
 
 print('Finished Training')
@@ -76,3 +76,4 @@ torch.save(net.state_dict(), 'cifar10_model.pt')
 
 # Upload the saved model file to S3
 s3.Bucket(bucket_name).upload_file(filename, filename)
+print(f'Uploaded model to s3://{bucket_name}/{filename}')
